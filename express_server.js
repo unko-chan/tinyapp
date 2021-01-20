@@ -25,10 +25,20 @@ app.post('/urls', (req, res) => {
   res.redirect(`urls/${shortURL}`); //redirects to the new generated link
 });
 
+//deletes
 app.post('/urls/:shortURL/delete', (req, res) => {
   shortURL = req.params.shortURL
   delete urlDatabase[shortURL]
   console.log(urlDatabase)
+  res.redirect(`/urls`)
+})
+
+//updates the longURL
+app.post('/urls/:shortURL/update', (req, res) => {
+  shortURL = req.params.shortURL
+  urlDatabase[shortURL] = req.body.updateUrl
+  console.log(urlDatabase)
+  res.redirect(`/urls`)
 })
 
 //shortened URL's list page
