@@ -25,6 +25,12 @@ app.post('/urls', (req, res) => {
   res.redirect(`urls/${shortURL}`); //redirects to the new generated link
 });
 
+app.post('/urls/:shortURL/delete', (req, res) => {
+  shortURL = req.params.shortURL
+  delete urlDatabase[shortURL]
+  console.log(urlDatabase)
+})
+
 //shortened URL's list page
 app.get('/urls', (req, res) => {
   const templateVars = { urls: urlDatabase };
