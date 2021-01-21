@@ -16,6 +16,19 @@ const urlDatabase = {
   '9sm5xK': 'http://www.google.com',
 };
 
+const users = {
+  userRandomID: {
+    id: 'userRandomID',
+    email: 'user@example.com',
+    password: 'purple-monkey-dinosaur',
+  },
+  user2RandomID: {
+    id: 'user2RandomID',
+    email: 'user2@example.com',
+    password: 'dishwasher-funk',
+  },
+};
+
 app.set('view engine', 'ejs');
 
 //login
@@ -30,11 +43,20 @@ app.post('/logout', (req, res) => {
   res.redirect(`/urls`);
 });
 
-//register
+//register data
+app.post('/register', (req, res) => {
+  const newUser = {};
+  newUser['id'] = generateRandomString();
+  newUser['email'] = req.body.email;
+  newUser['password'] = req.body.password;
+  Object.assign(users, newUser)
+  res.cookie('username', newUser['id'])
+  res.redirect('/urls');
+});
+
+//register page
 app.get('/register', (req, res) => {
   const templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase,
     username: req.cookies['username'],
   };
   res.render('register', templateVars);
