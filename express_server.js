@@ -2,6 +2,15 @@ const generateRandomString = () => {
   return Math.random().toString(20).substr(2, 6);
 };
 
+const checkEmail = function (email) {
+  for (const key in users) {
+    if (users[key]['email'] === email) {
+      console.log(email);
+      return true;
+    }
+  }
+};
+
 const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
@@ -46,12 +55,19 @@ app.post('/logout', (req, res) => {
 //register data
 app.post('/register', (req, res) => {
   const newUser = {};
-  newUser['id'] = generateRandomString();
-  newUser['email'] = req.body.email;
-  newUser['password'] = req.body.password;
-  Object.assign(users, newUser)
-  res.cookie('user_id', newUser['id'])
-  res.redirect('/urls');
+  if (checkEmail(req.body.email)) {
+    res.status(400).send('Duplicate Email');
+  } else if (req.body.email && req.body.password) {
+    newUser['id'] = generateRandomString();
+    newUser['email'] = req.body.email;
+    newUser['password'] = req.body.password;
+    Object.assign(users, newUser);
+    res.cookie('user_id', newUser['id']);
+    res.redirect('/urls');
+  } else {
+    res.status(400).send('Empty Fields');
+  }
+  console.log(users)
 });
 
 //register page
