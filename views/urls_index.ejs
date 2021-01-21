@@ -24,9 +24,10 @@
       <tbody>
         <!-- lists the shortened urls -->
         <% for(let url in urls) { %>
+          <% if(user_id === urls[url].userID){ %>
           <tr>
             <td><%= url %></td>
-            <td><%= urls[url] %></td>
+            <td><%= urls[url].longURL %></td>
             <td>
               <a href="/urls/<%= url %>"> 
                   <button type="submit" class="btn btn-outline-primary">Edit</button>
@@ -38,6 +39,7 @@
               </form>
             </td>
           </tr>
+          <% } %>
         <% } %>
       </tbody>
     </table>

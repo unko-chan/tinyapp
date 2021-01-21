@@ -25,8 +25,6 @@ const checkCredentials = function (credentials, type) {
 
 const register = function (email, password) {
   const id = generateRandomString();
-  // const userEmail = email;
-  // const userPassword = password;
 
   const newUser = {
     [id]: {
@@ -41,15 +39,15 @@ const register = function (email, password) {
 };
 
 const urlDatabase = {
-  b2xVn2: 'http://www.lighthouselabs.ca',
-  '9sm5xK': 'http://www.google.com',
+  b2xVn2: { longURL: 'http://www.lighthouselabs.ca', userID: 'userRandomID'},
+  '9sm5xK': { longURL: 'http://www.google.com', userID: 'userRandomID'},
 };
 
 const users = {
   userRandomID: {
     id: 'userRandomID',
-    email: 'user@example.com',
-    password: 'purple-monkey-dinosaur',
+    email: 'user@user.com',
+    password: '123',
   },
   user2RandomID: {
     id: 'user2RandomID',
@@ -121,9 +119,8 @@ app.get('/login', (req, res) => {
 
 //Creates and stores new generated shortened links
 app.post('/urls', (req, res) => {
-  const newUrls = {};
   shortURL = generateRandomString();
-  newUrls[shortURL] = req.body.longURL; //adds the new generated string & longURL to newUrls
+  const newUrls = {[shortURL]: {longURL: req.body.longURL, userID: req.cookies['user_id'] }};
   Object.assign(urlDatabase, newUrls); //adds new shortUrl:longUrls pair to urlDatabase
   console.log(urlDatabase);
   res.redirect(`urls/${shortURL}`); //redirects to the new generated link
@@ -137,10 +134,10 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect(`/urls`);
 });
 
-//updates the longURL
+//edit the longURL
 app.post('/urls/:shortURL/update', (req, res) => {
   shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.updateUrl;
+  urlDatabase[shortURL].longURL = req.body.updateUrl;
   console.log(urlDatabase);
   res.redirect(`/urls`);
 });
@@ -158,15 +155,19 @@ app.get('/u/undefined', (req, res) => {
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
-  const templateVars = { user_id: req.cookies['user_id'] };
-  res.render('urls_new', templateVars);
+  if (req.cookies['user_id']){
+    const templateVars = { user_id: req.cookies['user_id'] };
+    res.render('urls_new', templateVars);
+  } else {
+    res.redirect('/login')
+  }
 });
 
 //shows longURL and shortURL on page
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase,
+    url: urlDatabase,
     user_id: req.cookies['user_id'],
   };
   res.render('urls_show', templateVars);
@@ -175,9 +176,8 @@ app.get('/urls/:shortURL', (req, res) => {
 //redirects to longURL from shortURL
 app.get('/u/:shortURL', (req, res) => {
   console.log(req.params.shortURL);
-  const longURL = urlDatabase[req.params.shortURL];
-  console.log(longURL);
-  res.redirect(longURL);
+  const link = urlDatabase[req.params.shortURL].longURL;
+  res.redirect(link);
 });
 
 //Home page
@@ -199,6 +199,6 @@ app.listen(PORT, () => {
 - Security concerns on storing passwords as plain text
 - Accessing cookies
 - Make sure to always require the right modules
-- Creating User Login/Registration logic
+- Creating Modular User Login/Registration logic
 - templateVars for variables for the page that is going to be rendered by res.render
-
+*/
