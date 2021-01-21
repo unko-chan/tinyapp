@@ -1,24 +1,44 @@
-const generateRandomString = () => {
-  return Math.random().toString(20).substr(2, 6);
-};
-
-const checkEmail = function (email) {
-  for (const key in users) {
-    if (users[key]['email'] === email) {
-      console.log(email);
-      return true;
-    }
-  }
-};
-
+//TODO LIST:
+//fix registration object assigning DONE
+//implement better logic at finding userID when logging in DONE
+//finish login route ||  need to return ID
 const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+const generateRandomString = () => {
+  return Math.random().toString(20).substr(2, 6);
+};
+
+const checkCredentials = function (credentials, type) {
+  for (const key in users) {
+    if (users[key][type] === credentials) {
+      return key
+    } 
+  }
+};
+
+const register = function (email, password) {
+  const id = generateRandomString();
+  // const userEmail = email;
+  // const userPassword = password;
+
+  const newUser = {
+    [id]: {
+      id,
+      email,
+      password,
+    },
+  };
+
+  Object.assign(users, newUser);
+  return id;
+};
 
 const urlDatabase = {
   b2xVn2: 'http://www.lighthouselabs.ca',
@@ -42,8 +62,22 @@ app.set('view engine', 'ejs');
 
 //login
 app.post('/login', (req, res) => {
-  res.cookie('user_id', req.body.user_id);
-  res.redirect(`/urls`);
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (
+    checkCredentials(email, 'email') &&
+    checkCredentials(password, 'password')
+    ) {
+      id = checkCredentials(email, 'email')
+    res.cookie('user_id', id);
+    res.redirect(`/urls`);
+    console.log('valid login');
+  } else {
+    res.status(403).send('invalid credentials');
+    console.log('invalid login');
+  }
+
 });
 
 //logout
@@ -54,20 +88,19 @@ app.post('/logout', (req, res) => {
 
 //register data
 app.post('/register', (req, res) => {
-  const newUser = {};
-  if (checkEmail(req.body.email)) {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (checkCredentials(email, 'email')) {
     res.status(400).send('Duplicate Email');
-  } else if (req.body.email && req.body.password) {
-    newUser['id'] = generateRandomString();
-    newUser['email'] = req.body.email;
-    newUser['password'] = req.body.password;
-    Object.assign(users, newUser);
-    res.cookie('user_id', newUser['id']);
+  } else if (email && password) {
+    userId = register(email, password);
+    res.cookie('user_id', userId);
     res.redirect('/urls');
   } else {
     res.status(400).send('Empty Fields');
   }
-  console.log(users)
+  console.log(users);
 });
 
 //register page
@@ -76,6 +109,14 @@ app.get('/register', (req, res) => {
     user_id: req.cookies['user_id'],
   };
   res.render('register', templateVars);
+});
+
+//login page
+app.get('/login', (req, res) => {
+  const templateVars = {
+    user_id: req.cookies['user_id'],
+  };
+  res.render('login', templateVars);
 });
 
 //Creates and stores new generated shortened links
@@ -152,3 +193,12 @@ app.get('/urls.json', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+/* what I've learned:
+
+- Security concerns on storing passwords as plain text
+- Accessing cookies
+- Make sure to always require the right modules
+- Creating User Login/Registration logic
+- templateVars for variables for the page that is going to be rendered by res.render
+
