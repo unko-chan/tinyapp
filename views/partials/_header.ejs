@@ -14,16 +14,16 @@
           <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
         </li>
       </ul>
-      <% if(username){ %>
+      <% if(user_id){ %>
       <span class="navbar-text">
-        <%= username %>
+        <%= user_id %>
       </span>
         <form class="form-inline" action="/logout" method="POST">
           <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Log out</button>
         </form>
       <% } else{ %>
       <form class="form-inline" action="/login" method="POST">
-        <input class="form-control mr-sm-2" type="text" name="username" placeholder="Username" aria-label="Search">
+        <input class="form-control mr-sm-2" type="text" name="user_id" placeholder="user_id" aria-label="Search">
         <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Log in</button>
       </form>
       <% } %>
