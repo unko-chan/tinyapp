@@ -6,7 +6,10 @@ const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
 const bodyParser = require('body-parser');
+const cookieParser = require("cookie-parser");
+
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const urlDatabase = {
   b2xVn2: 'http://www.lighthouselabs.ca',
@@ -14,6 +17,17 @@ const urlDatabase = {
 };
 
 app.set('view engine', 'ejs');
+
+
+app.post('/login', (req, res) => {
+  res.cookie('username', req.body.username)
+  res.redirect(`/urls`)
+})
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('username', req.body.username)
+  res.redirect(`/urls`)
+})
 
 //Creates and stores new generated shortened links
 app.post('/urls', (req, res) => {
@@ -41,9 +55,9 @@ app.post('/urls/:shortURL/update', (req, res) => {
   res.redirect(`/urls`)
 })
 
-//shortened URL's list page
+//shortened URL's list (main) page
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"]};
   res.render('urls_index', templateVars);
 });
 
@@ -54,12 +68,13 @@ app.get('/u/undefined', (req, res) => {
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  const templateVars = { username: req.cookies["username"] };
+  res.render('urls_new', templateVars);
 });
 
 //shows longURL and shortURL on page
 app.get('/urls/:shortURL', (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase, username: req.cookies["username"] };
   res.render('urls_show', templateVars);
 });
 
