@@ -2,20 +2,35 @@ const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
+const bcrypt = require('bcrypt');
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['abcd'],
+}));
 
 const generateRandomString = () => {
   return Math.random().toString(20).substr(2, 6);
 };
 
-const checkCredentials = function (credentials, type) {
+const checkCredentials = function (email, password) {
   for (const key in users) {
-    if (users[key][type] === credentials) {
+    if (
+      users[key].email === email &&
+      bcrypt.compareSync(password, users[key].password)
+    ) {
       return key;
     }
+  }
+};
+
+const checkDupeEmail = function (email) {
+  for (const key in users) {
+    if (users[key].email === email) {
+      return true;
+    } 
   }
 };
 
@@ -64,15 +79,11 @@ app.set('view engine', 'ejs');
 
 //login
 app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
+  const { email, password } = req.body;
 
-  if (
-    checkCredentials(email, 'email') &&
-    checkCredentials(password, 'password')
-  ) {
-    id = checkCredentials(email, 'email');
-    res.cookie('user_id', id);
+  if (checkCredentials(email, password)) {
+    const id = checkCredentials(email, password);
+    req.session.user_id = id;
     res.redirect(`/urls`);
   } else {
     res.status(403).send('invalid credentials');
@@ -81,20 +92,20 @@ app.post('/login', (req, res) => {
 
 //logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id', req.body.user_id);
+  res.clearCookie('session');
   res.redirect(`/urls`);
 });
 
 //register data
 app.post('/register', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
+  const { email, password } = req.body;
 
-  if (checkCredentials(email, 'email')) {
+  if (checkDupeEmail(email)) {
     res.status(400).send('Duplicate Email');
   } else if (email && password) {
-    userId = register(email, password);
-    res.cookie('user_id', userId);
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    userId = register(email, hashedPassword);
+    req.session.user_id = userId;
     res.redirect('/urls');
   } else {
     res.status(400).send('Empty Fields');
@@ -105,7 +116,7 @@ app.post('/register', (req, res) => {
 //register page
 app.get('/register', (req, res) => {
   const templateVars = {
-    user_id: req.cookies['user_id'],
+    user_id: req.session.user_id,
   };
   res.render('register', templateVars);
 });
@@ -113,7 +124,7 @@ app.get('/register', (req, res) => {
 //login page
 app.get('/login', (req, res) => {
   const templateVars = {
-    user_id: req.cookies['user_id'],
+    user_id: req.session.user_id,
   };
   res.render('login', templateVars);
 });
@@ -122,7 +133,7 @@ app.get('/login', (req, res) => {
 app.post('/urls', (req, res) => {
   shortURL = generateRandomString();
   const newUrls = {
-    [shortURL]: { longURL: req.body.longURL, userID: req.cookies['user_id'] },
+    [shortURL]: { longURL: req.body.longURL, userID: req.session.user_id },
   };
   Object.assign(urlDatabase, newUrls); //adds new shortUrl:longUrls pair to urlDatabase
   console.log(urlDatabase);
@@ -131,7 +142,7 @@ app.post('/urls', (req, res) => {
 
 //deletes
 app.post('/urls/:shortURL/delete', (req, res) => {
-  const user_id = req.cookies['user_id'];
+  const user_id = req.session.user_id;
   shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID !== user_id) {
     res.status(403).send('invalid credentials');
@@ -144,7 +155,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
 //edit the longURL
 app.post('/urls/:shortURL/update', (req, res) => {
-  const user_id = req.cookies['user_id'];
+  const user_id = req.session.user_id;
   shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID !== user_id) {
     res.status(403).send('invalid credentials');
@@ -157,7 +168,7 @@ app.post('/urls/:shortURL/update', (req, res) => {
 
 //shortened URL's list (main) page
 app.get('/urls', (req, res) => {
-  const user_id = req.cookies['user_id'];
+  const user_id = req.session.user_id;
   const urls = urlsForUser(user_id);
   const templateVars = { urls, user_id };
   res.render('urls_index', templateVars);
@@ -170,8 +181,8 @@ app.get('/u/undefined', (req, res) => {
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
-  if (req.cookies['user_id']) {
-    const templateVars = { user_id: req.cookies['user_id'] };
+  if (req.session.user_id) {
+    const templateVars = { user_id: req.session.user_id };
     res.render('urls_new', templateVars);
   } else {
     res.redirect('/login');
@@ -183,7 +194,7 @@ app.get('/urls/:shortURL', (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
     url: urlDatabase,
-    user_id: req.cookies['user_id'],
+    user_id: req.session.user_id,
   };
   res.render('urls_show', templateVars);
 });
