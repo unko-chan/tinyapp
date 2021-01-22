@@ -1,5 +1,3 @@
-//TODO LIST:
-
 const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
@@ -59,7 +57,7 @@ const urlsForUser = (id) => {
       Object.assign(userUrls, { [key]: urlDatabase[key] });
     }
   }
-  return userUrls
+  return userUrls;
 };
 
 app.set('view engine', 'ejs');
@@ -133,24 +131,34 @@ app.post('/urls', (req, res) => {
 
 //deletes
 app.post('/urls/:shortURL/delete', (req, res) => {
+  const user_id = req.cookies['user_id'];
   shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
-  console.log(urlDatabase);
-  res.redirect(`/urls`);
+  if (urlDatabase[shortURL].userID !== user_id) {
+    res.status(403).send('invalid credentials');
+  } else {
+    delete urlDatabase[shortURL];
+    console.log(urlDatabase);
+    res.redirect(`/urls`);
+  }
 });
 
 //edit the longURL
 app.post('/urls/:shortURL/update', (req, res) => {
+  const user_id = req.cookies['user_id'];
   shortURL = req.params.shortURL;
-  urlDatabase[shortURL].longURL = req.body.updateUrl;
-  console.log(urlDatabase);
-  res.redirect(`/urls`);
+  if (urlDatabase[shortURL].userID !== user_id) {
+    res.status(403).send('invalid credentials');
+  } else {
+    urlDatabase[shortURL].longURL = req.body.updateUrl;
+    console.log(urlDatabase);
+    res.redirect(`/urls`);
+  }
 });
 
 //shortened URL's list (main) page
 app.get('/urls', (req, res) => {
-  const user_id = req.cookies['user_id']
-  const urls = urlsForUser(user_id)
+  const user_id = req.cookies['user_id'];
+  const urls = urlsForUser(user_id);
   const templateVars = { urls, user_id };
   res.render('urls_index', templateVars);
 });
