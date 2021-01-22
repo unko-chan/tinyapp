@@ -1,41 +1,24 @@
 const express = require('express');
 const app = express();
-const PORT = 8080; //default port 8080
+const PORT = 8080;
 const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 
+//require checkDupeEmail(), generateRandomString(), checkCredentials
+const helpers = require('./helpers');
+
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieSession({
-  name: 'session',
-  keys: ['abcd'],
-}));
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: ['kj32h'],
+  })
+);
 
-const generateRandomString = () => {
-  return Math.random().toString(20).substr(2, 6);
-};
-
-const checkCredentials = function (email, password) {
-  for (const key in users) {
-    if (
-      users[key].email === email &&
-      bcrypt.compareSync(password, users[key].password)
-    ) {
-      return key;
-    }
-  }
-};
-
-const checkDupeEmail = function (email) {
-  for (const key in users) {
-    if (users[key].email === email) {
-      return true;
-    } 
-  }
-};
-
+//register function
 const register = function (email, password) {
-  const id = generateRandomString();
+  const id = helpers.generateRandomString();
   const newUser = {
     [id]: {
       id,
@@ -47,24 +30,11 @@ const register = function (email, password) {
   return id;
 };
 
-const urlDatabase = {
-  b2xVn2: { longURL: 'http://www.lighthouselabs.ca', userID: 'userRandomID' },
-  '9sm5xK': { longURL: 'http://www.google.com', userID: 'userRandomID' },
-};
+const urlDatabase = {};
 
-const users = {
-  userRandomID: {
-    id: 'userRandomID',
-    email: 'user@user.com',
-    password: '123',
-  },
-  user2RandomID: {
-    id: 'user2RandomID',
-    email: 'user2@example.com',
-    password: 'dishwasher-funk',
-  },
-};
+const users = {};
 
+//gets all urls owned by user
 const urlsForUser = (id) => {
   const userUrls = {};
   for (const key in urlDatabase) {
@@ -77,12 +47,13 @@ const urlsForUser = (id) => {
 
 app.set('view engine', 'ejs');
 
-//login
+//login logic
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  if (checkCredentials(email, password)) {
-    const id = checkCredentials(email, password);
+  //runs validation check on credentials
+  if (helpers.checkCredentials(email, password, users)) {
+    const id = helpers.checkCredentials(email, password, users);
     req.session.user_id = id;
     res.redirect(`/urls`);
   } else {
@@ -90,7 +61,7 @@ app.post('/login', (req, res) => {
   }
 });
 
-//logout
+//logout and clear cookies
 app.post('/logout', (req, res) => {
   res.clearCookie('session');
   res.redirect(`/urls`);
@@ -100,17 +71,17 @@ app.post('/logout', (req, res) => {
 app.post('/register', (req, res) => {
   const { email, password } = req.body;
 
-  if (checkDupeEmail(email)) {
+  //runs check for duplicate emails in DB
+  if (helpers.checkDupeEmail(email, users)) {
     res.status(400).send('Duplicate Email');
-  } else if (email && password) {
-    const hashedPassword = bcrypt.hashSync(password, 10);
+  } else if (email && password) {                           //hash password and completes
+    const hashedPassword = bcrypt.hashSync(password, 10);   //registration if pass
     userId = register(email, hashedPassword);
     req.session.user_id = userId;
     res.redirect('/urls');
   } else {
     res.status(400).send('Empty Fields');
   }
-  console.log(users);
 });
 
 //register page
@@ -131,24 +102,24 @@ app.get('/login', (req, res) => {
 
 //Creates and stores new generated shortened links
 app.post('/urls', (req, res) => {
-  shortURL = generateRandomString();
+  shortURL = helpers.generateRandomString();
   const newUrls = {
     [shortURL]: { longURL: req.body.longURL, userID: req.session.user_id },
   };
-  Object.assign(urlDatabase, newUrls); //adds new shortUrl:longUrls pair to urlDatabase
-  console.log(urlDatabase);
-  res.redirect(`urls/${shortURL}`); //redirects to the new generated link
+  Object.assign(urlDatabase, newUrls);                //adds new shortUrl:longUrls pair to urlDatabase
+  res.redirect(`urls/${shortURL}`);                   //redirects to the new generated link
 });
 
 //deletes
 app.post('/urls/:shortURL/delete', (req, res) => {
   const user_id = req.session.user_id;
   shortURL = req.params.shortURL;
+
+  //checks if user has rights to delete
   if (urlDatabase[shortURL].userID !== user_id) {
     res.status(403).send('invalid credentials');
   } else {
     delete urlDatabase[shortURL];
-    console.log(urlDatabase);
     res.redirect(`/urls`);
   }
 });
@@ -157,11 +128,12 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 app.post('/urls/:shortURL/update', (req, res) => {
   const user_id = req.session.user_id;
   shortURL = req.params.shortURL;
+
+  //checks if user has rights to edit
   if (urlDatabase[shortURL].userID !== user_id) {
     res.status(403).send('invalid credentials');
   } else {
     urlDatabase[shortURL].longURL = req.body.updateUrl;
-    console.log(urlDatabase);
     res.redirect(`/urls`);
   }
 });
@@ -176,11 +148,13 @@ app.get('/urls', (req, res) => {
 
 //undefined page
 app.get('/u/undefined', (req, res) => {
-  res.send('sorry my guy that link doesnt exist');
+  res.send('Link does not exist!');
 });
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
+
+  //checks if user is logged in
   if (req.session.user_id) {
     const templateVars = { user_id: req.session.user_id };
     res.render('urls_new', templateVars);
@@ -201,7 +175,6 @@ app.get('/urls/:shortURL', (req, res) => {
 
 //redirects to longURL from shortURL
 app.get('/u/:shortURL', (req, res) => {
-  console.log(req.params.shortURL);
   const link = urlDatabase[req.params.shortURL].longURL;
   res.redirect(link);
 });
@@ -226,5 +199,5 @@ app.listen(PORT, () => {
 - Accessing cookies
 - Make sure to always require the right modules
 - Creating Modular User Login/Registration logic
-- templateVars for variables for the page that is going to be rendered by res.render
+- templateVars are variables for the page that is going to be rendered by res.render
 */
