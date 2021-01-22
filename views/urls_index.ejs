@@ -24,7 +24,6 @@
       <tbody>
         <!-- lists the shortened urls -->
         <% for(let url in urls) { %>
-          <% if(user_id === urls[url].userID){ %>
           <tr>
             <td><%= url %></td>
             <td><%= urls[url].longURL %></td>
@@ -39,7 +38,6 @@
               </form>
             </td>
           </tr>
-          <% } %>
         <% } %>
       </tbody>
     </table>

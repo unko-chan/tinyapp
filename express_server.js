@@ -1,7 +1,5 @@
 //TODO LIST:
-//fix registration object assigning DONE
-//implement better logic at finding userID when logging in DONE
-//finish login route ||  need to return ID
+
 const express = require('express');
 const app = express();
 const PORT = 8080; //default port 8080
@@ -18,14 +16,13 @@ const generateRandomString = () => {
 const checkCredentials = function (credentials, type) {
   for (const key in users) {
     if (users[key][type] === credentials) {
-      return key
-    } 
+      return key;
+    }
   }
 };
 
 const register = function (email, password) {
   const id = generateRandomString();
-
   const newUser = {
     [id]: {
       id,
@@ -33,14 +30,13 @@ const register = function (email, password) {
       password,
     },
   };
-
   Object.assign(users, newUser);
   return id;
 };
 
 const urlDatabase = {
-  b2xVn2: { longURL: 'http://www.lighthouselabs.ca', userID: 'userRandomID'},
-  '9sm5xK': { longURL: 'http://www.google.com', userID: 'userRandomID'},
+  b2xVn2: { longURL: 'http://www.lighthouselabs.ca', userID: 'userRandomID' },
+  '9sm5xK': { longURL: 'http://www.google.com', userID: 'userRandomID' },
 };
 
 const users = {
@@ -56,6 +52,16 @@ const users = {
   },
 };
 
+const urlsForUser = (id) => {
+  const userUrls = {};
+  for (const key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      Object.assign(userUrls, { [key]: urlDatabase[key] });
+    }
+  }
+  return userUrls
+};
+
 app.set('view engine', 'ejs');
 
 //login
@@ -66,16 +72,13 @@ app.post('/login', (req, res) => {
   if (
     checkCredentials(email, 'email') &&
     checkCredentials(password, 'password')
-    ) {
-      id = checkCredentials(email, 'email')
+  ) {
+    id = checkCredentials(email, 'email');
     res.cookie('user_id', id);
     res.redirect(`/urls`);
-    console.log('valid login');
   } else {
     res.status(403).send('invalid credentials');
-    console.log('invalid login');
   }
-
 });
 
 //logout
@@ -120,7 +123,9 @@ app.get('/login', (req, res) => {
 //Creates and stores new generated shortened links
 app.post('/urls', (req, res) => {
   shortURL = generateRandomString();
-  const newUrls = {[shortURL]: {longURL: req.body.longURL, userID: req.cookies['user_id'] }};
+  const newUrls = {
+    [shortURL]: { longURL: req.body.longURL, userID: req.cookies['user_id'] },
+  };
   Object.assign(urlDatabase, newUrls); //adds new shortUrl:longUrls pair to urlDatabase
   console.log(urlDatabase);
   res.redirect(`urls/${shortURL}`); //redirects to the new generated link
@@ -144,7 +149,9 @@ app.post('/urls/:shortURL/update', (req, res) => {
 
 //shortened URL's list (main) page
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: urlDatabase, user_id: req.cookies['user_id'] };
+  const user_id = req.cookies['user_id']
+  const urls = urlsForUser(user_id)
+  const templateVars = { urls, user_id };
   res.render('urls_index', templateVars);
 });
 
@@ -155,11 +162,11 @@ app.get('/u/undefined', (req, res) => {
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
-  if (req.cookies['user_id']){
+  if (req.cookies['user_id']) {
     const templateVars = { user_id: req.cookies['user_id'] };
     res.render('urls_new', templateVars);
   } else {
-    res.redirect('/login')
+    res.redirect('/login');
   }
 });
 
