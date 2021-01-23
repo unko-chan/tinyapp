@@ -45,6 +45,16 @@ const urlsForUser = (id) => {
   return userUrls;
 };
 
+//checks if url exists in database
+const checkUrl = (shortUrl) => {
+  for (key in urlDatabase) {
+    if (shortUrl === key) {
+      return true;
+    }
+  }
+  return false;
+};
+
 app.set('view engine', 'ejs');
 
 //login logic
@@ -58,7 +68,7 @@ app.post('/login', (req, res) => {
     console.log(req.session.user_id);
     res.redirect(`/urls`);
   } else {
-    res.status(403).send('invalid credentials');
+    res.redirect('/403');
   }
 });
 
@@ -74,7 +84,7 @@ app.post('/register', (req, res) => {
 
   //runs check for duplicate emails in DB
   if (helpers.checkDupeEmail(email, users)) {
-    res.status(400).send('Duplicate Email');
+    res.redirect('/400');
   } else if (email && password) {
     //hash password and completes
     const hashedPassword = bcrypt.hashSync(password, 10); //registration if pass
@@ -82,7 +92,7 @@ app.post('/register', (req, res) => {
     req.session.user_id = email;
     res.redirect('/urls');
   } else {
-    res.status(400).send('Empty Fields');
+    res.redirect('/400');
   }
 });
 
@@ -119,7 +129,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
   //checks if user has rights to delete
   if (urlDatabase[shortURL].userID !== user_id) {
-    res.status(403).send('invalid credentials');
+    res.redirect('/403');  
   } else {
     delete urlDatabase[shortURL];
     res.redirect(`/urls`);
@@ -133,7 +143,7 @@ app.post('/urls/:shortURL/update', (req, res) => {
 
   //checks if user has rights to edit
   if (urlDatabase[shortURL].userID !== user_id) {
-    res.status(403).send('invalid credentials');
+    res.redirect('/403');
   } else {
     urlDatabase[shortURL].longURL = req.body.updateUrl;
     res.redirect(`/urls`);
@@ -151,9 +161,28 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-//undefined page
-app.get('/u/undefined', (req, res) => {
-  res.send('Link does not exist!');
+//404 not found page
+app.get('/404', (req, res) => {
+  const errorCode = '404';
+  const errorMessage = 'The page you are looking for was not found.';
+  templateVars = { errorCode, errorMessage };
+  res.status(404).render('error_page', templateVars);
+});
+
+//403 not authorized page
+app.get('/403', (req, res) => {
+  const errorCode = '403';
+  const errorMessage = 'Missing valid authentication credentials.';
+  templateVars = { errorCode, errorMessage };
+  res.status(403).render('error_page', templateVars);
+});
+
+//400 not authorized page
+app.get('/400', (req, res) => {
+  const errorCode = '400';
+  const errorMessage = 'The server could not understand the request due to invalid syntax.'
+  templateVars = { errorCode, errorMessage };
+  res.status(400).render('error_page', templateVars);
 });
 
 //new generator form page
@@ -174,26 +203,43 @@ app.get('/urls/new', (req, res) => {
 
 //shows longURL and shortURL on page
 app.get('/urls/:shortURL', (req, res) => {
+  const shortURL = req.params.shortURL;
   let user_id = req.session.user_id;
+
+  //checks login
   if (!user_id) {
     return res.redirect('/home');
+
+    //checks shorturl
+  } else if (!checkUrl(shortURL)) {
+    res.redirect('/404');
+
+    //checks if user owns url
+  } else if (urlDatabase[shortURL].userID !== user_id) {
+    res.redirect('/403');
+  } else {
+    const templateVars = {
+      shortURL: req.params.shortURL,
+      url: urlDatabase,
+      longURL: urlDatabase[shortURL].longURL,
+      user_id: req.session.user_id,
+    };
+    res.render('urls_show', templateVars);
   }
-  const templateVars = {
-    shortURL: req.params.shortURL,
-    url: urlDatabase,
-    user_id: req.session.user_id,
-  };
-  res.render('urls_show', templateVars);
 });
 
 //redirects to longURL from shortURL
 app.get('/u/:shortURL', (req, res) => {
+  const shortURL = req.params.shortURL;
   let user_id = req.session.user_id;
   if (!user_id) {
     return res.redirect('/home');
+  } else if (!checkUrl(shortURL)) {
+    res.redirect('/404');
+  } else {
+    const link = urlDatabase[req.params.shortURL].longURL;
+    res.redirect(link);
   }
-  const link = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(link);
 });
 
 //Home page
@@ -214,13 +260,8 @@ app.get('/home', (req, res) => {
   }
 });
 
-//json of urlDatabase
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
-});
-
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`TinyApp listening on ${PORT}!`);
 });
 
 /* what I've learned:
