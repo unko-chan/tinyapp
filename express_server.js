@@ -55,7 +55,7 @@ app.post('/login', (req, res) => {
   if (helpers.checkCredentials(email, password, users)) {
     const id = helpers.checkCredentials(email, password, users);
     req.session.user_id = email;
-    console.log(req.session.user_id)
+    console.log(req.session.user_id);
     res.redirect(`/urls`);
   } else {
     res.status(403).send('invalid credentials');
@@ -75,8 +75,9 @@ app.post('/register', (req, res) => {
   //runs check for duplicate emails in DB
   if (helpers.checkDupeEmail(email, users)) {
     res.status(400).send('Duplicate Email');
-  } else if (email && password) {                           //hash password and completes
-    const hashedPassword = bcrypt.hashSync(password, 10);   //registration if pass
+  } else if (email && password) {
+    //hash password and completes
+    const hashedPassword = bcrypt.hashSync(password, 10); //registration if pass
     userId = register(email, hashedPassword);
     req.session.user_id = email;
     res.redirect('/urls');
@@ -107,8 +108,8 @@ app.post('/urls', (req, res) => {
   const newUrls = {
     [shortURL]: { longURL: req.body.longURL, userID: req.session.user_id },
   };
-  Object.assign(urlDatabase, newUrls);                //adds new shortUrl:longUrls pair to urlDatabase
-  res.redirect(`urls/`);                              //redirects to the new generated link
+  Object.assign(urlDatabase, newUrls); //adds new shortUrl:longUrls pair to urlDatabase
+  res.redirect(`urls/`); //redirects to the new generated link
 });
 
 //deletes
@@ -141,9 +142,9 @@ app.post('/urls/:shortURL/update', (req, res) => {
 
 //shortened URL's list (main) page
 app.get('/urls', (req, res) => {
-  let user_id = req.session.user_id
-  if (!user_id){
-    return res.redirect('/home')
+  let user_id = req.session.user_id;
+  if (!user_id) {
+    return res.redirect('/home');
   }
   const urls = urlsForUser(user_id);
   const templateVars = { urls, user_id };
@@ -157,11 +158,11 @@ app.get('/u/undefined', (req, res) => {
 
 //new generator form page
 app.get('/urls/new', (req, res) => {
-  let user_id = req.session.user_id
-  if (!user_id){
-    return res.redirect('/home')
+  let user_id = req.session.user_id;
+  if (!user_id) {
+    return res.redirect('/home');
   }
-  
+
   //checks if user is logged in
   if (req.session.user_id) {
     const templateVars = { user_id: req.session.user_id };
@@ -173,10 +174,10 @@ app.get('/urls/new', (req, res) => {
 
 //shows longURL and shortURL on page
 app.get('/urls/:shortURL', (req, res) => {
-  let user_id = req.session.user_id
-  if (!user_id){
-    return res.redirect('/home')
-  } 
+  let user_id = req.session.user_id;
+  if (!user_id) {
+    return res.redirect('/home');
+  }
   const templateVars = {
     shortURL: req.params.shortURL,
     url: urlDatabase,
@@ -187,9 +188,9 @@ app.get('/urls/:shortURL', (req, res) => {
 
 //redirects to longURL from shortURL
 app.get('/u/:shortURL', (req, res) => {
-  let user_id = req.session.user_id
-  if (!user_id){
-    return res.redirect('/home')
+  let user_id = req.session.user_id;
+  if (!user_id) {
+    return res.redirect('/home');
   }
   const link = urlDatabase[req.params.shortURL].longURL;
   res.redirect(link);
@@ -197,17 +198,21 @@ app.get('/u/:shortURL', (req, res) => {
 
 //Home page
 app.get('/', (req, res) => {
-  if (req.session.user_id){
-    res.redirect('/urls')
+  if (req.session.user_id) {
+    res.redirect('/urls');
   } else {
-    return res.redirect('/home')
+    return res.redirect('/home');
   }
 });
 
 app.get('/home', (req, res) => {
-  templateVars = {user_id: req.session.user_id}
-  res.render('home', templateVars)
-})
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  } else {
+    templateVars = { user_id: req.session.user_id };
+    res.render('home', templateVars);
+  }
+});
 
 //json of urlDatabase
 app.get('/urls.json', (req, res) => {
