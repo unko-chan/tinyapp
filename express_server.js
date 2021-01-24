@@ -129,7 +129,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
   //checks if user has rights to delete
   if (urlDatabase[shortURL].userID !== user_id) {
-    res.redirect('/403');  
+    res.redirect('/403');
   } else {
     delete urlDatabase[shortURL];
     res.redirect(`/urls`);
@@ -180,7 +180,8 @@ app.get('/403', (req, res) => {
 //400 not authorized page
 app.get('/400', (req, res) => {
   const errorCode = '400';
-  const errorMessage = 'The server could not understand the request due to invalid syntax.'
+  const errorMessage =
+    'The server could not understand the request due to invalid syntax.';
   templateVars = { errorCode, errorMessage };
   res.status(400).render('error_page', templateVars);
 });
@@ -231,10 +232,7 @@ app.get('/urls/:shortURL', (req, res) => {
 //redirects to longURL from shortURL
 app.get('/u/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
-  let user_id = req.session.user_id;
-  if (!user_id) {
-    return res.redirect('/home');
-  } else if (!checkUrl(shortURL)) {
+  if (!checkUrl(shortURL)) {
     res.redirect('/404');
   } else {
     const link = urlDatabase[req.params.shortURL].longURL;
