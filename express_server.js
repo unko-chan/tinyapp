@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 
-//require checkDupeEmail(), generateRandomString(), checkCredentials
+//require helper functions and variables
 const {
   checkDupeEmail,
   generateRandomString,
@@ -22,8 +22,6 @@ app.use(
     keys: ['kj32h'],
   })
 );
-
-//register function
 
 //gets all urls owned by user
 const urlsForUser = (id) => {
