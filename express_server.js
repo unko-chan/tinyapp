@@ -6,7 +6,14 @@ const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 
 //require checkDupeEmail(), generateRandomString(), checkCredentials
-const helpers = require('./helpers');
+const {
+  checkDupeEmail,
+  generateRandomString,
+  checkCredentials,
+  register,
+  urlDatabase,
+  users,
+} = require('./helpers');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
@@ -17,22 +24,6 @@ app.use(
 );
 
 //register function
-const register = function (email, password) {
-  const id = helpers.generateRandomString();
-  const newUser = {
-    [id]: {
-      id,
-      email,
-      password,
-    },
-  };
-  Object.assign(users, newUser);
-  return id;
-};
-
-const urlDatabase = {};
-
-const users = {};
 
 //gets all urls owned by user
 const urlsForUser = (id) => {
@@ -62,10 +53,9 @@ app.post('/login', (req, res) => {
   const { email, password } = req.body;
 
   //runs validation check on credentials
-  if (helpers.checkCredentials(email, password, users)) {
-    const id = helpers.checkCredentials(email, password, users);
+  if (checkCredentials(email, password, users)) {
+    const id = checkCredentials(email, password, users);
     req.session.user_id = email;
-    console.log(req.session.user_id);
     res.redirect(`/urls`);
   } else {
     res.redirect('/403');
@@ -83,7 +73,7 @@ app.post('/register', (req, res) => {
   const { email, password } = req.body;
 
   //runs check for duplicate emails in DB
-  if (helpers.checkDupeEmail(email, users)) {
+  if (checkDupeEmail(email, users)) {
     res.redirect('/400');
   } else if (email && password) {
     //hash password and completes
@@ -114,7 +104,7 @@ app.get('/login', (req, res) => {
 
 //Creates and stores new generated shortened links
 app.post('/urls', (req, res) => {
-  shortURL = helpers.generateRandomString();
+  shortURL = generateRandomString();
   const newUrls = {
     [shortURL]: { longURL: req.body.longURL, userID: req.session.user_id },
   };

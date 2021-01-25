@@ -1,5 +1,9 @@
 const bcrypt = require('bcrypt');
 
+const urlDatabase = {};
+
+const users = {};
+
 const checkDupeEmail = function (email, database) {
   for (const key in database) {
     if (database[key].email === email) {
@@ -23,4 +27,24 @@ const checkCredentials = function (email, password, database) {
   }
 };
 
-module.exports = { checkDupeEmail, generateRandomString, checkCredentials };
+const register = function (email, password) {
+  const id = generateRandomString();
+  const newUser = {
+    [id]: {
+      id,
+      email,
+      password,
+    },
+  };
+  Object.assign(users, newUser);
+  return id;
+};
+
+module.exports = {
+  checkDupeEmail,
+  generateRandomString,
+  checkCredentials,
+  register,
+  urlDatabase,
+  users,
+};
